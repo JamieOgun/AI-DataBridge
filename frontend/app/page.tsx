@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Database, Copy, Check, Trash2 } from "lucide-react";
+import { Database, Copy, Check, Trash2, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface MCPInstance {
   id: string;
@@ -55,6 +57,12 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    allowedTables: ""
+  });
 
   // Fetch MCP instances on mount
   useEffect(() => {
@@ -89,6 +97,57 @@ export default function Home() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleAddMCP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.allowedTables) {
+      setError("Name and Allowed Tables are required.");
+      return;
+    }
+
+    try {
+      setError(null);
+      const allowedTables = formData.allowedTables
+        .split(",")
+        .map(table => table.trim())
+        .filter(table => table.length > 0);
+
+      if (allowedTables.length === 0) {
+        setError("Please provide at least one allowed table");
+        return;
+      }
+
+      const requestBody = {
+        name: formData.name,
+        description: formData.description || "",
+        allowedTables: allowedTables
+      };
+
+      const response = await fetch(`${API_BASE_URL}/mcp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      await fetchMCPInstances();
+      setFormData({
+        name: "",
+        description: "",
+        allowedTables: ""
+      });
+      setShowAddForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create MCP instance");
+    }
+  };
+
   const handleDeleteMCP = async (id: string) => {
     if (!confirm("Are you sure you want to delete this MCP instance?")) {
       return;
@@ -108,6 +167,15 @@ export default function Home() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete MCP instance");
     }
+  };
+
+  const cancelForm = () => {
+    setShowAddForm(false);
+    setFormData({
+      name: "",
+      description: "",
+      allowedTables: ""
+    });
   };
 
   const getCategoryColors = (category?: string) => {
@@ -130,6 +198,89 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Add MCP Server Card */}
+            <Card className="flex flex-col border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary/50 transition-colors bg-gradient-to-br from-slate-50/50 to-white dark:from-slate-900/50 dark:to-slate-950">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1 flex-1">
+                    <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Plus className="h-5 w-5 text-primary" />
+                      </div>
+                      Add MCP Server
+                    </CardTitle>
+                    <CardDescription className="mt-2 text-sm leading-relaxed">
+                      Create a new MCP instance to share organization data with your LLMs
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col space-y-4">
+                {!showAddForm ? (
+                  <Button
+                    onClick={() => setShowAddForm(true)}
+                    variant="outline"
+                    className="w-full mt-auto"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New MCP Server
+                  </Button>
+                ) : (
+                  <form onSubmit={handleAddMCP} className="space-y-4 flex-1 flex flex-col">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">MCP Server Name *</Label>
+                      <Input
+                        id="name"
+                        placeholder="e.g., Marketing Analytics MCP"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        placeholder="Describe what this MCP instance provides access to..."
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="allowedTables">Allowed Tables *</Label>
+                      <Input
+                        id="allowedTables"
+                        placeholder="sales, customers, products"
+                        value={formData.allowedTables}
+                        onChange={(e) => setFormData({ ...formData, allowedTables: e.target.value })}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter table names separated by commas
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 mt-auto">
+                      <Button type="submit" className="flex-1">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add MCP Server
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={cancelForm}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+
             {mcpInstances.map((mcp) => {
               const colors = getCategoryColors("default");
               return (

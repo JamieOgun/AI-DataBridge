@@ -72,14 +72,19 @@ def get_database_context() -> str:
         if not instance_id:
             return "Error: No instance_id found in request"
         
+        # Strip whitespace and normalize the instance_id
+        instance_id = instance_id.strip()
+        
         # Load MCP instances from JSON file
         mcp_instances = load_mcp_instances()
         
-        # Look up MCP instance by id
-        mcp_instance = next((mcp for mcp in mcp_instances if mcp["id"] == instance_id), None)
+        # Look up MCP instance by id (case-sensitive string match)
+        mcp_instance = next((mcp for mcp in mcp_instances if str(mcp["id"]) == instance_id), None)
         
         if not mcp_instance:
-            return "Error: Invalid instance ID"
+            # Provide helpful error message with available IDs
+            available_ids = [str(mcp["id"]) for mcp in mcp_instances]
+            return f"Error: Invalid instance ID '{instance_id}'. Available IDs: {', '.join(available_ids)}"
         
         # Get allowed tables for this instance
         allowed_tables = mcp_instance.get("allowedTables", [])
