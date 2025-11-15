@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Database, Copy, Check, Trash2, Plus } from "lucide-react";
+import { Database, Copy, Check, Trash2, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -70,6 +70,14 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
+    claude: false,
+    chatgpt: false
+  });
+  const [copiedSection, setCopiedSection] = useState<{ [key: string]: boolean }>({
+    claude: false,
+    chatgpt: false
+  });
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -114,6 +122,57 @@ export default function Home() {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const copySectionInstructions = (section: "claude" | "chatgpt") => {
+    let instructions = "";
+
+    if (section === "claude") {
+      instructions = `# Adding Remote MCP to Claude Desktop
+
+1. Open the Claude Desktop application
+2. Navigate to Settings → Connectors
+3. Click on "Add custom connector"
+4. Paste your MCP endpoint URL (copied from one of the MCP cards)
+5. If prompted, complete any required authentication flow
+6. Click "Add" to save the connector
+7. In a chat, open the tools/search panel and enable this connector for the conversation
+
+Your MCP endpoint URL format:
+\`https://your-domain.com/llm/mcp?instance_id={uuid}\``;
+    } else if (section === "chatgpt") {
+      instructions = `# Adding Remote MCP to ChatGPT Dev Mode
+
+1. Open ChatGPT and navigate to Settings → Developer Mode
+2. In the MCP Servers section, click "Add Server"
+3. Enter your MCP endpoint URL
+4. Save the configuration
+5. The MCP server will be available in your ChatGPT sessions
+
+Your MCP endpoint URL format:
+\`https://your-domain.com/llm/mcp?instance_id={uuid}\``;
+    }
+
+    navigator.clipboard.writeText(instructions);
+    setCopiedSection(prev => ({
+      ...prev,
+      [section]: true
+    }));
+    setTimeout(
+      () =>
+        setCopiedSection(prev => ({
+          ...prev,
+          [section]: false
+        })),
+      2000
+    );
   };
 
   const handleAddMCP = async (e: React.FormEvent) => {
@@ -328,6 +387,113 @@ export default function Home() {
             })}
           </div>
         )}
+
+        {/* MCP Setup Instructions */}
+        <Card className="border-l-4 border-l-primary bg-white shadow-md dark:from-slate-900/50 dark:to-slate-950">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold tracking-tight">Setup Instructions</CardTitle>
+            <CardDescription className="text-sm leading-relaxed mt-1">
+              How to add remote MCP to Claude Desktop and ChatGPT Dev Mode
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 text-sm">
+              {/* Claude Desktop Section */}
+              <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection("claude")}
+                    className="flex items-center justify-between flex-1 text-left"
+                  >
+                    <h3 className="font-semibold text-base">Claude Desktop</h3>
+                    {expandedSections.claude ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground ml-3" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground ml-3" />
+                    )}
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="ml-2"
+                    onClick={() => copySectionInstructions("claude")}
+                    title="Copy Claude Desktop instructions"
+                  >
+                    {copiedSection.claude ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                {expandedSections.claude && (
+                  <div className="p-4 pt-0 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                    <ol className="list-decimal list-inside space-y-2 text-muted-foreground ml-2">
+                      <li>Open the Claude Desktop application</li>
+                      <li>Navigate to <span className="font-medium">Settings → Connectors</span></li>
+                      <li>Click <span className="font-medium">Add custom connector</span></li>
+                      <li>Paste your MCP endpoint URL from one of the MCP cards above</li>
+                      <li>If prompted, complete any required authentication flow</li>
+                      <li>Click <span className="font-medium">Add</span> to save the connector</li>
+                      <li>In a chat, open the tools/search panel and enable this connector for the conversation</li>
+                    </ol>
+                  </div>
+                )}
+              </div>
+
+              {/* ChatGPT Dev Mode Section */}
+              <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection("chatgpt")}
+                    className="flex items-center justify-between flex-1 text-left"
+                  >
+                    <h3 className="font-semibold text-base">ChatGPT Dev Mode</h3>
+                    {expandedSections.chatgpt ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground ml-3" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground ml-3" />
+                    )}
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="ml-2"
+                    onClick={() => copySectionInstructions("chatgpt")}
+                    title="Copy ChatGPT Dev Mode instructions"
+                  >
+                    {copiedSection.chatgpt ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                {expandedSections.chatgpt && (
+                  <div className="p-4 pt-0 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                    <ol className="list-decimal list-inside space-y-2 text-muted-foreground ml-2">
+                      <li>Open ChatGPT and navigate to Settings → Developer Mode</li>
+                      <li>In the MCP Servers section, click "Add Server"</li>
+                      <li>Enter your MCP endpoint URL</li>
+                      <li>Save the configuration</li>
+                      <li>The MCP server will be available in your ChatGPT sessions</li>
+                    </ol>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Note:</strong> Copy the endpoint URL from any MCP instance card above and use it in the configurations above.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Info Card */}
         <Card className="border-l-4 border-l-slate-500 bg-white shadow-md dark:from-slate-900/50 dark:to-slate-950">
