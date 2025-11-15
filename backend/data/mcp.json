@@ -9,8 +9,7 @@
       "customers",
       "transactions",
       "products"
-    ],
-    "category": "sales"
+    ]
   },
   {
     "id": "2",
@@ -22,8 +21,7 @@
       "departments",
       "roles",
       "performance_reviews"
-    ],
-    "category": "hr"
+    ]
   },
   {
     "id": "3",
@@ -35,8 +33,7 @@
       "warehouses",
       "stock_movements",
       "suppliers"
-    ],
-    "category": "inventory"
+    ]
   },
   {
     "id": "4",
@@ -48,8 +45,7 @@
       "transactions",
       "budgets",
       "financial_reports"
-    ],
-    "category": "finance"
+    ]
   },
   {
     "id": "5",
@@ -61,7 +57,6 @@
       "interactions",
       "resolutions",
       "customer_feedback"
-    ],
-    "category": "support"
+    ]
   }
 ]

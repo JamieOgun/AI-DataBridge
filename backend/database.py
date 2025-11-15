@@ -140,23 +140,62 @@ class DatabaseConnection:
         return self.get_table_data(schema, table, limit=limit)
 
     def build_schema_context(self, schemas: list = None, key_tables_only: bool = True) -> str:
-        """Build compact schema - only key tables and important columns"""
+        """Build compact schema - only key tables and important columns, filtered by allowed tables"""
         key_tables = {
             'Sales': ['Customers', 'Orders', 'OrderLines', 'Invoices'],
             'Warehouse': ['StockItems', 'StockItemHoldings'],
         }
         
+        # Normalize allowed tables to lowercase for comparison
+        allowed_tables_lower = [table.lower() for table in (schemas or [])]
+        
         context_parts = ["## Key Tables\n"]
         
         for schema, tables in key_tables.items():
-            context_parts.append(f"\n### {schema}\n")
+            # Filter tables if schemas are provided
+            filtered_tables = []
             for table in tables:
-                col_info = self.get_table_schema(schema, table)
-                if not col_info.empty:
-                    cols = col_info.head(10)
-                    col_list = [f"{row['COLUMN_NAME']}:{row['DATA_TYPE']}" 
-                            for _, row in cols.iterrows()]
-                    context_parts.append(f"{schema}.{table}({', '.join(col_list)})\n")
+                # Check if table name matches any allowed table (case-insensitive)
+                # Match by full table name or just the table name part
+                table_lower = table.lower()
+                schema_lower = schema.lower()
+                
+                # Check if table name matches directly (e.g., "customers" matches "Customers")
+                # Or if schema.table matches (e.g., "sales.customers" matches "Sales.Customers")
+                if not schemas:
+                    # No filtering, include all tables
+                    filtered_tables.append(table)
+                else:
+                    # Check if this table should be included
+                    should_include = False
+                    for allowed in allowed_tables_lower:
+                        # Match exact table name (case-insensitive)
+                        if allowed == table_lower:
+                            should_include = True
+                            break
+                        # Match schema.table format (e.g., "sales.customers")
+                        if '.' in allowed:
+                            parts = allowed.split('.')
+                            if len(parts) == 2 and parts[0].lower() == schema_lower and parts[1].lower() == table_lower:
+                                should_include = True
+                                break
+                        # Match schema name (e.g., "sales" matches all Sales tables)
+                        elif allowed == schema_lower:
+                            should_include = True
+                            break
+                    
+                    if should_include:
+                        filtered_tables.append(table)
+            
+            if filtered_tables:
+                context_parts.append(f"\n### {schema}\n")
+                for table in filtered_tables:
+                    col_info = self.get_table_schema(schema, table)
+                    if not col_info.empty:
+                        cols = col_info.head(10)
+                        col_list = [f"{row['COLUMN_NAME']}:{row['DATA_TYPE']}" 
+                                for _, row in cols.iterrows()]
+                        context_parts.append(f"{schema}.{table}({', '.join(col_list)})\n")
         
         return "\n".join(context_parts)  
               
