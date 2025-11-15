@@ -211,7 +211,7 @@ if __name__ == "__main__":
     db = DatabaseConnection()
     db.connect()
     
-    print(db.build_schema_context())
+    # print(db.build_schema_context())
 
     # Get all tables
     # all_tables = db.get_tables()
